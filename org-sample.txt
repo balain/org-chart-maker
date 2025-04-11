@@ -1,0 +1,9 @@
+CTO
+    Tech Lead
+        Senior Dev
+            Developer 1
+            Developer 2
+    Product Manager
+        Designer
+            UI Developer
+            UX Researcher
