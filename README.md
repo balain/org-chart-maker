@@ -24,3 +24,6 @@ Converts text file into an org chart in one of three formats: text, Visio-format
 - tree: tab-indented tree
 - visio: text file suitable for import into Visio Org Chart
 - mermaid: Mermaid flowchart
+
+# License
+[MIT License](LICENSE.md)
