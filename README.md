@@ -4,6 +4,10 @@
 
 Converts text file into an org chart in one of three formats: text, Visio-formatted text, or Mermaid flowchart.
 
+# Dependencies
+- Python 3.13+
+- graphviz (only needed for SVG output)
+
 # Usage
 `python main.py [filename] [-f format]`
 
@@ -24,6 +28,7 @@ Converts text file into an org chart in one of three formats: text, Visio-format
 - tree: tab-indented tree
 - visio: text file suitable for import into Visio Org Chart
 - mermaid: Mermaid flowchart
+- svg: SVG image (using graphviz)
 
 # License
 [MIT License](LICENSE.md)
