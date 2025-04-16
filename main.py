@@ -144,23 +144,31 @@ def generate_svg_chart(node, output_file="org_chart"):
     """
     dot = graphviz.Digraph(comment='Organization Chart')
     dot.attr(rankdir='TB')  # Top to bottom layout
-    dot.attr('node', shape='box', style='rounded')
+    dot.attr('node', shape='box', style='rounded,filled', fillcolor='lightblue')
     
-    def add_nodes(node, counter=[0]):
+    def add_nodes(node, node_ids=None):
+        if node_ids is None:
+            node_ids = {}
+        
         if node.name == "Root":
+            for child in node.children:
+                add_nodes(child, node_ids)
             return
+            
+        # Create unique ID for this node if not already created
+        if node.name not in node_ids:
+            node_ids[node.name] = f"node_{len(node_ids)}"
         
-        current_id = f"node_{counter[0]}"
-        counter[0] += 1
-        
+        current_id = node_ids[node.name]
         dot.node(current_id, node.name)
         
-        if node.parent and node.parent.name != "Root":
-            parent_id = f"node_{counter[0]-2}"  # Parent was added before
-            dot.edge(parent_id, current_id)
-            
+        # Add edges to children
         for child in node.children:
-            add_nodes(child, counter)
+            if child.name not in node_ids:
+                node_ids[child.name] = f"node_{len(node_ids)}"
+            child_id = node_ids[child.name]
+            dot.edge(current_id, child_id)
+            add_nodes(child, node_ids)
     
     add_nodes(node)
     dot.render(output_file, format='svg', cleanup=True)
