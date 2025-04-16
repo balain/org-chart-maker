@@ -144,15 +144,20 @@ def generate_svg_chart(node, output_file="org_chart"):
     """
     dot = graphviz.Digraph(comment='Organization Chart')
     dot.attr(rankdir='TB')  # Top to bottom layout
-    dot.attr('node', shape='box', style='rounded,filled', fillcolor='lightblue')
+    dot.attr('node', shape='box', style='filled', fillcolor='#1B6B93', fontcolor='white')
+    dot.attr(ranksep='0.75')
+    dot.attr(nodesep='0.5')
+    dot.attr(splines='ortho')
+    # Remove arrow heads and set minimum edge length
+    dot.attr('edge', dir='none', minlen='1')
     
-    def add_nodes(node, node_ids=None):
+    def add_nodes(node, node_ids=None, subgraph_counter=[0]):
         if node_ids is None:
             node_ids = {}
         
         if node.name == "Root":
             for child in node.children:
-                add_nodes(child, node_ids)
+                add_nodes(child, node_ids, subgraph_counter)
             return
             
         # Create unique ID for this node if not already created
@@ -160,15 +165,57 @@ def generate_svg_chart(node, output_file="org_chart"):
             node_ids[node.name] = f"node_{len(node_ids)}"
         
         current_id = node_ids[node.name]
-        dot.node(current_id, node.name)
         
-        # Add edges to children
-        for child in node.children:
-            if child.name not in node_ids:
-                node_ids[child.name] = f"node_{len(node_ids)}"
-            child_id = node_ids[child.name]
-            dot.edge(current_id, child_id)
-            add_nodes(child, node_ids)
+        # If this node has children that are all end nodes, create a subgraph for horizontal layout
+        if node.children and all(not child.children for child in node.children):
+            with dot.subgraph(name=f'cluster_{subgraph_counter[0]}') as s:
+                s.attr(rank='same', style='invis')
+                s.node(current_id, node.name)
+                
+                # Add all children in the same rank
+                prev_child_id = current_id
+                for child in node.children:
+                    if child.name not in node_ids:
+                        node_ids[child.name] = f"node_{len(node_ids)}"
+                    child_id = node_ids[child.name]
+                    s.node(child_id, child.name)
+                    
+                    # Connect horizontally from previous node
+                    if prev_child_id != current_id:
+                        dot.edge(prev_child_id, child_id, style='invis')
+                    # Connect from parent with right angle
+                    dot.edge(current_id, child_id, constraint='false')
+                    prev_child_id = child_id
+                
+                subgraph_counter[0] += 1
+        else:
+            # For nodes with non-end children or no children
+            dot.node(current_id, node.name)
+            
+            # Group direct reports at the same rank
+            if node.children:
+                with dot.subgraph(name=f'cluster_reports_{subgraph_counter[0]}') as s:
+                    s.attr(rank='same', style='invis')
+                    prev_child_id = None
+                    
+                    for child in node.children:
+                        if child.name not in node_ids:
+                            node_ids[child.name] = f"node_{len(node_ids)}"
+                        child_id = node_ids[child.name]
+                        s.node(child_id, child.name)
+                        
+                        # Connect peers horizontally with invisible edge
+                        if prev_child_id:
+                            s.edge(prev_child_id, child_id, style='invis')
+                        
+                        # Connect from parent vertically
+                        dot.edge(current_id, child_id)
+                        prev_child_id = child_id
+                        
+                        # Process child's subtree
+                        add_nodes(child, node_ids, subgraph_counter)
+                
+                subgraph_counter[0] += 1
     
     add_nodes(node)
     dot.render(output_file, format='svg', cleanup=True)

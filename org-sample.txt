@@ -6,4 +6,9 @@ CTO
     Product Manager
         Designer
             UI Developer
-            UX Researcher
+            UX Researcher 1
+            UX Researcher 2
+            UX Researcher 3
+            UX Researcher 4
+            UX Researcher 5
+            UX Researcher 6
