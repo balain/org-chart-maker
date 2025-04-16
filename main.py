@@ -1,5 +1,6 @@
 import argparse
 import sys
+import graphviz
 
 
 class OrgNode:
@@ -125,6 +126,47 @@ def _print_mermaid_nodes(node, parent_id=None, counter=None):
         _print_mermaid_nodes(child, current_id, counter)
 
 
+def generate_svg_chart(node, output_file="org_chart"):
+    """
+    Generates an SVG representation of the organization chart.
+    
+    Parameters
+    ----------
+    node : OrgNode
+        The root node of the organization chart.
+    output_file : str, optional
+        The name of the output file (without extension). Defaults to "org_chart".
+    
+    Returns
+    -------
+    str
+        Path to the generated SVG file.
+    """
+    dot = graphviz.Digraph(comment='Organization Chart')
+    dot.attr(rankdir='TB')  # Top to bottom layout
+    dot.attr('node', shape='box', style='rounded')
+    
+    def add_nodes(node, counter=[0]):
+        if node.name == "Root":
+            return
+        
+        current_id = f"node_{counter[0]}"
+        counter[0] += 1
+        
+        dot.node(current_id, node.name)
+        
+        if node.parent and node.parent.name != "Root":
+            parent_id = f"node_{counter[0]-2}"  # Parent was added before
+            dot.edge(parent_id, current_id)
+            
+        for child in node.children:
+            add_nodes(child, counter)
+    
+    add_nodes(node)
+    dot.render(output_file, format='svg', cleanup=True)
+    return f"{output_file}.svg"
+
+
 def main():
     """
     Entry point for the program.
@@ -154,7 +196,7 @@ def main():
     parser.add_argument(
         "-f",
         "--format",
-        choices=["tree", "visio", "mermaid"],
+        choices=["tree", "visio", "mermaid", "svg"],
         help="output format (default: show all formats)",
     )
     args = parser.parse_args()
@@ -170,6 +212,9 @@ def main():
             print_reporting_relationships(root.children[0])
             print("\nMermaid Flowchart", file=sys.stderr)
             print_mermaid_flowchart(root)
+            print("\nGenerating SVG...", file=sys.stderr)
+            svg_file = generate_svg_chart(root.children[0])
+            print(f"SVG file generated: {svg_file}", file=sys.stderr)
         else:
             # Show only the requested format
             if args.format == "tree":
@@ -178,6 +223,9 @@ def main():
                 print_reporting_relationships(root.children[0])
             elif args.format == "mermaid":
                 print_mermaid_flowchart(root)
+            elif args.format == "svg":
+                svg_file = generate_svg_chart(root.children[0])
+                print(f"SVG file generated: {svg_file}")
     except FileNotFoundError:
         print(
             f"Error: {args.filename} not found. Please create a text file with your organization structure."
